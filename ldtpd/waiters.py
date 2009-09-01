@@ -20,12 +20,14 @@ Headers in this file shall remain intact.
 from utils import Utils
 import gobject, pyatspi
 
+_main_loop = gobject.MainLoop()
+
 class Waiter(Utils):
     events = []
     def __init__(self, timeout):
         Utils.__init__(self)
         self.timeout = timeout
-        self._loop = gobject.MainLoop()
+        gobject.threads_init()
 
     def run(self):
         self.success = False
@@ -38,12 +40,12 @@ class Waiter(Utils):
 
         if self.success or self.timeout == 0:
             return self.success
-        
+
         gobject.timeout_add_seconds(1, self._timeout_cb)
         if self.events:
             pyatspi.Registry.registerEventListener(
                 self._event_cb, *self.events)
-        self._loop.run()
+        _main_loop.run()
         if self.events:
             pyatspi.Registry.deregisterEventListener(
                 self._event_cb, *self.events)
@@ -55,17 +57,17 @@ class Waiter(Utils):
         self._timeout_count += 1
         self.poll()
         if self._timeout_count >= self.timeout or self.success:
-            self._loop.quit()
+            _main_loop.quit()
             return False
         return True
-    
+
     def poll(self):
         pass
 
     def _event_cb(self, event):
         self.event_cb(event)
         if self.success:
-            self._loop.quit()
+            _main_loop.quit()
 
     def event_cb(self, event):
         pass

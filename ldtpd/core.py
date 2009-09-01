@@ -30,6 +30,7 @@ from keypress_actions import TypeAction
 from server_exception import LdtpServerException
 import os
 import re
+import sys
 import time
 import pyatspi
 import traceback
@@ -53,10 +54,44 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         self._states = {}
         self._get_all_state_names()
 
+    def getapplist(self):
+        '''
+        Get all accessibility application name that are currently running
+        
+        @return: list of appliction name of string type on success.
+        @rtype: list
+        '''
+        app_list = []
+        for app in self._list_apps():
+            if app.name != '<unknown>':
+                app_list.append(app.name)
+        return app_list
+
     def getwindowlist(self):
+        '''
+        Get all accessibility window that are currently open
+        
+        @return: list of window names in LDTP format of string type on success.
+        @rtype: list
+        '''
         window_list = []
+        window_type = {}
         for gui in self._list_guis():
-            window_list.append(self._ldtpize_accessible(gui))
+            window_name = self._ldtpize_accessible(gui)
+            if window_name[1] == '':
+                if window_name[0] in window_type:
+                    window_type[window_name[0]] += 1
+                else:
+                    window_type[window_name[0]] = 0
+                tmp_name = '%d' % window_type[window_name[0]]
+            else:
+                tmp_name = window_name[1]
+            w_name = window_name = '%s%s' % (window_name[0], tmp_name)
+            index = 1
+            while window_name in window_list:
+                window_name = '%s%d' % (w_name, index)
+                index += 1
+            window_list.append(window_name)
         return window_list
 
     def isalive(self):
@@ -144,7 +179,7 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
 
         return int(waiter.run())
 
-    def waittillguiexist(self, window_name, object_name='', guiTimeOut=5):
+    def waittillguiexist(self, window_name, object_name='', guiTimeOut=30):
         '''
         Wait till a window or component exists.
         
@@ -167,7 +202,7 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
 
         return int(waiter.run())
 
-    def waittillguinotexist(self, window_name, object_name='', guiTimeOut=5):
+    def waittillguinotexist(self, window_name, object_name='', guiTimeOut=30):
         '''
         Wait till a window does not exist.
         
@@ -232,7 +267,6 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         _obj_states = []
         for state in _current_state:
             _obj_states.append(state.real)
-        _state.unref()
         return _obj_states
 
     def hasstate(self, window_name, object_name, state):
@@ -441,7 +475,8 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         obj_list = []
         for gui in self._list_guis():
             if self._match_name_to_acc(window_name, gui):
-                for name, obj in self._appmap_pairs(gui):
+                # for name, obj in self._appmap_pairs(gui):
+                for name in self._appmap_pairs(gui).keys():
                     obj_list.append(name)
                 return obj_list
 
@@ -461,12 +496,17 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @return: list of properties
         @rtype: list
         '''
-        obj = self._get_object(window_name, object_name)
+        _window_handle = self._get_window_handle(window_name)
+        if not _window_handle:
+            raise LdtpServerException('Unable to find window "%s"' % \
+                                          window_name)
+        appmap = self._appmap_pairs(_window_handle)
 
-        props = \
-            ['child_index', 'key', 'obj_index', 'parent', 'class', \
-                 'children', 'label', 'label_by']
-
+        obj_info = self._get_object_in_window(appmap, object_name)
+        props = []
+        for obj_prop in obj_info.keys():
+            if obj_info[obj_prop]:
+                props.append(obj_prop)
         return props
 
     def getobjectproperty(self, window_name, object_name, prop):
@@ -485,62 +525,19 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @return: list of properties
         @rtype: list
         '''
-        if prop == 'child_index':
-            obj = self._get_object(window_name, object_name)
-            return obj.getIndexInParent()
-        elif prop == 'key':
-            obj = self._get_object(window_name, object_name) # A sanity check.
-            return object_name # For now, we only match exact names anyway.
-        elif prop == 'label':
-            obj = self._get_object(window_name, object_name) # A sanity check.
-            return obj.name
-        elif prop == 'obj_index':
-            role_count = {}
-            for gui in self._list_guis():
-                if self._match_name_to_acc(window_name, gui):
-                    for name, obj in self._appmap_pairs(gui):
-                        role = obj.getRole()
-                        role_count[role] = role_count.get(role, 0) + 1
-                        if name == object_name:
-                            return '%s#%d' % (
-                                abbreviated_roles.get(role, 'ukn'),
-                                role_count.get(role, 1) - 1)
+        _window_handle = self._get_window_handle(window_name)
+        if not _window_handle:
+            raise LdtpServerException('Unable to find window "%s"' % \
+                                          window_name)
+        appmap = self._appmap_pairs(_window_handle)
 
-            raise LdtpServerException(
-                'Unable to find object name in application map')
-        elif prop == 'parent':
-            cached_list = []
-            for gui in self._list_guis():
-                if self._match_name_to_acc(window_name, gui):
-                    for name, obj in self._appmap_pairs(gui):
-                        if name == object_name:
-                            for pname, pobj in cached_list:
-                                if obj in pobj: # avoid double link issues
-                                    return pname
-                            _parent = self._ldtpize_accessible(obj.parent)
-                            return '%s%s' % (_parent[0], _parent[1])
-                        cached_list.insert(0, (name, obj))
-
-            raise LdtpServerException(
-                'Unable to find object name in application map')
-        elif prop == 'class':
-            obj = self._get_object(window_name, object_name)
-            return obj.getRoleName().replace(' ', '_')
-        elif prop == 'children':
-            children = []
-            obj = self._get_object(window_name, object_name)
-            for gui in self._list_guis():
-                if self._match_name_to_acc(window_name, gui):
-                    for name, child in self._appmap_pairs(gui):
-                        if child in obj:
-                            children.append(name)
-                    break
-            return ' '.join(children)
-
+        obj_info = self._get_object_in_window(appmap, object_name)
+        if prop in obj_info:
+            return obj_info[prop]
         raise LdtpServerException('Unknown property "%s" in %s' % \
                                       (prop, object_name))
 
-    def getchild(self, window_name, child_name='', role='', first=False):
+    def getchild(self, window_name, child_name = '', role = '', first = False):
         '''
         Gets the list of object available in the window, which matches 
         component name or role name or both.
@@ -557,27 +554,38 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @rtype: list
         '''
         matches = []
-        for gui in self._list_guis():
-            if self._match_name_to_acc(window_name, gui):
-                for name, obj in self._appmap_pairs(gui):
-                    if child_name and role:
-                        if obj.getRoleName() == role and \
-                                (child_name == name or \
-                                     self._match_name_to_acc(child_name, obj)):
-                            matches.append(name)
-                    elif role:
-                        if obj.getRoleName() == role:
-                            matches.append(name)
-                    elif child_name:
-                        if child_name == name or \
-                                self._match_name_to_acc(child_name, obj):
-                            matches.append(name)
+        _window_handle = self._get_window_handle(window_name)
+        if not _window_handle:
+            raise LdtpServerException('Unable to find window "%s"' % \
+                                          window_name)
+        appmap = self._appmap_pairs(_window_handle)
+        if role:
+            role = re.sub(' ', '_', role)
+        for name in appmap.keys():
+            obj = appmap[name]
+            # When only role arg is passed
+            if role and not child_name and obj['class'] == role:
+                matches.append(name)
+            # When only child_name arg is passed
+            if child_name and not role and \
+                    self._match_name_to_appmap(child_name, obj):
+                def _get_all_children_under_obj(obj, child_list):
+                    if obj:
+                        children = obj['children']
+                    if not children:
+                        return child_list
+                    child_list += children
+                    for child in children:
+                        return _get_all_children_under_obj( \
+                            appmap[child],
+                            child_list)
 
-                    #print matches, first
-                    if matches and first:
-                        # Return once we have a match
-                        return matches
-                
+                matches = _get_all_children_under_obj(obj, [])
+                break
+            if role and child_name and obj['class'] == role and \
+                    self._match_name_to_appmap(child_name, obj):
+                matches.append(name)
+
         if not matches:
             raise LdtpServerException('Could not find a child.')
 
@@ -585,9 +593,6 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
 
     def remap(self, window_name):
         '''
-        For backwards compatability, does not do anything since we are entirely
-        dynamic.
-
         @param window_name: Window name to look for, either full name,
         LDTP's name convention, or a Unix glob.
         @type window_name: string
@@ -595,6 +600,11 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @return: 1
         @rtype: integer
         '''
+        _window_handle = self._get_window_handle(window_name)
+        if not _window_handle:
+            raise LdtpServerException('Unable to find window "%s"' % \
+                                          window_name)
+        self._appmap_pairs(_window_handle, force_remap = True)
         return 1
 
     def wait(self, timeout=5):
