@@ -241,7 +241,7 @@ class Utils:
                 'Object does not have an Action interface')
         else:
             for i in xrange(iaction.nActions):
-                if iaction.getName(i) == action:
+                if re.match(action, iaction.getName(i)):
                     iaction.doAction(i)
                     return
             raise LdtpServerException('Object does not have a "%s" action' % action)
