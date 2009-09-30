@@ -195,7 +195,7 @@ class Text(Utils):
         @rtype: integer
         '''
         try:
-            return int(self._glob_match(partial_text,
+            return int(self._glob_match(text,
                                         self.gettextvalue(window_name,
                                                           object_name)))
         except:
