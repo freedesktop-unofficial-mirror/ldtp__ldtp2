@@ -44,6 +44,38 @@ class Text(Utils):
 
         return 1
 
+    def keypress(self, data):
+        '''
+        Press key. NOTE: keyrelease should be called
+
+        @param data: data to type.
+        @type data: string
+
+        @return: 1 on success.
+        @rtype: integer
+        '''
+
+        key_press_action = KeyPressAction(key_name = data)
+        key_press_action()
+
+        return 1
+
+    def keyrelease(self, data):
+        '''
+        Release key. NOTE: keypress should be called before this
+
+        @param data: data to type.
+        @type data: string
+
+        @return: 1 on success.
+        @rtype: integer
+        '''
+
+        key_release_action = KeyReleaseAction(key_name = data)
+        key_release_action()
+
+        return 1
+
     def enterstring(self, window_name, object_name='', data=''):
         '''
         Type string sequence.
