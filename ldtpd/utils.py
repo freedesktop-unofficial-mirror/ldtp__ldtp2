@@ -73,13 +73,13 @@ class Utils:
             (label_acc or acc).name.replace(' ', '').rstrip(':.')
 
     def _glob_match(self, pattern, string):
-        return bool(re_match(glob_trans(pattern), string))
+        return bool(re_match(glob_trans(pattern), string, re.M | re.U | re.L))
 
     def _match_name_to_acc(self, name, acc):
         if acc.name == name:
             return 1
         _object_name = self._ldtpize_accessible(acc)
-        _object_name = '%s%s' % (_object_name[0], _object_name[1])
+        _object_name = u'%s%s' % (_object_name[0], _object_name[1])
         if _object_name == name:
             return 1
         if self._glob_match(name, acc.name):
@@ -101,7 +101,7 @@ class Utils:
         if self._glob_match(name, acc['label']):
             return 1
         # Strip space and look for object
-        obj_name = '%s' % re.sub(' ', '', name)
+        obj_name = u'%s' % re.sub(' ', '', name)
         if acc['label_by'] and \
                 self._glob_match(obj_name,
                                  re.sub(' ', '', acc['label_by'])):
@@ -163,15 +163,15 @@ class Utils:
             self.ldtpized_obj_index[abbrev_role] = 0
         if abbrev_name == '':
             ldtpized_name_base = abbrev_role
-            ldtpized_name = '%s%d' % (ldtpized_name_base,
+            ldtpized_name = u'%s%d' % (ldtpized_name_base,
                                       self.ldtpized_obj_index[abbrev_role])
         else:
-            ldtpized_name_base = '%s%s' % (abbrev_role, abbrev_name)
+            ldtpized_name_base = u'%s%s' % (abbrev_role, abbrev_name)
             ldtpized_name = ldtpized_name_base
         i = 0
         while ldtpized_name in self.ldtpized_list:
             i += 1
-            ldtpized_name = '%s%d' % (ldtpized_name_base, i)
+            ldtpized_name = u'%s%d' % (ldtpized_name_base, i)
         if parent in self.ldtpized_list:
             self.ldtpized_list[parent]['children'].append(ldtpized_name)
         self.ldtpized_list[ldtpized_name] = {'key' : ldtpized_name,
@@ -206,7 +206,7 @@ class Utils:
                 if self._match_name_to_acc(key, gui):
                     return self._appmap[key]
         abbrev_role, abbrev_name = self._ldtpize_accessible(gui)
-        _window_name = '%s%s' % (abbrev_role, abbrev_name)
+        _window_name = u'%s%s' % (abbrev_role, abbrev_name)
         abbrev_role, abbrev_name = self._ldtpize_accessible(gui.parent)
         _parent = abbrev_name
         self._populate_appmap(gui, _parent, gui.getIndexInParent())
@@ -273,10 +273,10 @@ class Utils:
                 tmp_name = '%d' % window_type[w_name[0]]
             else:
                 tmp_name = w_name[1]
-            w_name = tmp_name = '%s%s' % (w_name[0], tmp_name)
+            w_name = tmp_name = u'%s%s' % (w_name[0], tmp_name)
             index = 1
             while w_name in window_list:
-                w_name = '%s%d' % (tmp_name, index)
+                w_name = u'%s%d' % (tmp_name, index)
                 index += 1
             window_list.append(w_name)
             if window_name == w_name:
