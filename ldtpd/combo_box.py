@@ -290,7 +290,7 @@ class ComboBox(Utils):
             obj = self._get_object(window_name, object_name)
             self._grab_focus(obj)
 
-            child_obj.getRole() = self._get_combo_child_object_type(obj)
+            child_obj = self._get_combo_child_object_type(obj)
             if not child_obj:
                 return 0
 
