@@ -88,6 +88,7 @@ class NullWaiter(Waiter):
         Waiter.run(self)
         return self._return_value
 
+
 class MaximizeWindow(Waiter):
     def __init__(self, frame_name):
         Waiter.__init__(self, timeout = 0)
@@ -103,8 +104,9 @@ class MaximizeWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then maximize just that window
                     w.maximize()
                     self.success = True
@@ -129,8 +131,9 @@ class MinimizeWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then minimize just that window
                     w.minimize()
                     self.success = True
@@ -155,8 +158,9 @@ class UnmaximizeWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then unmaximize just that window
                     w.unmaximize()
                     self.success = True
@@ -181,8 +185,9 @@ class UnminimizeWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then unminimize just that window
                     w.unminimize(int(time.time()))
                     self.success = True
@@ -207,8 +212,9 @@ class ActivateWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then activate just that window
                     w.activate(int(time.time()))
                     self.success = True
@@ -231,8 +237,9 @@ class CloseWindow(Waiter):
                 current_window = w.get_name()
                 if re.search( \
                     fnmatch.translate(self._frame_name), current_window, re.I) \
-                    or re.search(fnmatch.translate(self._frame_name),
-                                 re.sub(" *\t*\n*", "", current_window), re.I):
+                    or re.search(fnmatch.translate(re.sub("(^frm)|(^dlg)", "",
+                                                          self._frame_name)),
+                                 re.sub(" *(\t*)|(\n*)", "", current_window), re.I):
                     # If window name specified, then close just that window
                     w.close(int(time.time()))
                     self.success = True
