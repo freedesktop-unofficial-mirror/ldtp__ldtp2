@@ -20,6 +20,7 @@ Headers in this file shall remain intact.
 from utils import Utils
 import re
 import gtk
+import time
 import wnck
 import fnmatch
 import gobject
@@ -96,8 +97,8 @@ class MaximizeWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -122,8 +123,8 @@ class MinimizeWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -148,8 +149,8 @@ class UnmaximizeWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -174,8 +175,8 @@ class UnminimizeWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -183,12 +184,12 @@ class UnminimizeWindow(Waiter):
                     or re.search(fnmatch.translate(self._frame_name),
                                  re.sub(" *\t*\n*", "", current_window), re.I):
                     # If window name specified, then unminimize just that window
-                    w.unminimize(0L)
+                    w.unminimize(int(time.time()))
                     self.success = True
                     break
             else:
                 # Unminimize all window
-                w.unminimize(0L)
+                w.unminimize(int(time.time()))
                 self.success = True
 
 class ActivateWindow(Waiter):
@@ -200,8 +201,8 @@ class ActivateWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -209,13 +210,11 @@ class ActivateWindow(Waiter):
                     or re.search(fnmatch.translate(self._frame_name),
                                  re.sub(" *\t*\n*", "", current_window), re.I):
                     # If window name specified, then activate just that window
-                    w.activate(0L)
+                    w.activate(int(time.time()))
                     self.success = True
                     break
             else:
-                # Activate all window
-                w.activate(0L)
-                self.success = True
+                break
 
 class CloseWindow(Waiter):
     def __init__(self, frame_name):
@@ -226,8 +225,8 @@ class CloseWindow(Waiter):
         screen = wnck.screen_get_default()
         while gtk.events_pending():
             gtk.main_iteration()
-        windowList = screen.get_windows()
-        for w in windowList:
+        window_list = screen.get_windows()
+        for w in window_list:
             if self._frame_name:
                 current_window = w.get_name()
                 if re.search( \
@@ -235,12 +234,12 @@ class CloseWindow(Waiter):
                     or re.search(fnmatch.translate(self._frame_name),
                                  re.sub(" *\t*\n*", "", current_window), re.I):
                     # If window name specified, then close just that window
-                    w.close(0L)
+                    w.close(int(time.time()))
                     self.success = True
                     break
             else:
                 # Close all window
-                w.close(0L)
+                w.close(int(time.time()))
                 self.success = True
 
 class GuiExistsWaiter(Waiter):
