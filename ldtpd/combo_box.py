@@ -284,7 +284,7 @@ class LayeredPane(Utils):
 class ComboBox(Utils, LayeredPane):
     def selectitem(self, window_name, object_name, item_name):
         '''
-        Select combo box item
+        Select combo box / layered pane item
         
         @param window_name: Window name to type in, either full name,
         LDTP's name convention, or a Unix glob.
@@ -309,7 +309,7 @@ class ComboBox(Utils, LayeredPane):
             raise LdtpServerException('Unable to get combo box children')
         if child_obj.getRole() == pyatspi.ROLE_LIST:
             index = 0
-            for child in self._list_objects (child_obj):
+            for child in self._list_objects(child_obj):
                 if child == child_obj:
                     # As the _list_objects gives the current object as well
                     # ignore it
@@ -349,7 +349,7 @@ class ComboBox(Utils, LayeredPane):
 
     def selectindex(self, window_name, object_name, item_index):
         '''
-        Select combo box item based on index
+        Select combo box item / layered pane based on index
         
         @param window_name: Window name to type in, either full name,
         LDTP's name convention, or a Unix glob.
