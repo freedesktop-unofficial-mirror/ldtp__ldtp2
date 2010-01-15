@@ -38,22 +38,23 @@ class Utils:
         if Utils.cached_apps is None:
             pyatspi.Registry.registerEventListener(
                 self._on_window_event, 'window')
-            Utils.cached_apps = set()
+            Utils.cached_apps = list()
             if lazy_load:
                 for app in self._desktop:
                     if app is None: continue
-                    self.cached_apps.add(app)
+                    self.cached_apps.append(app)
 
     def _on_window_event(self, event):
-        self.cached_apps.add(event.host_application)
+        if event.host_application not in self.cached_apps:
+            self.cached_apps.append(event.host_application)
 
     def _list_apps(self):
-        for app in list(self.cached_apps):
+        for app in self.cached_apps:
             if not app: continue
             yield app
 
     def _list_guis(self):
-        for app in list(self.cached_apps):
+        for app in self.cached_apps:
             if not app: continue
             try:
                 for gui in app:
