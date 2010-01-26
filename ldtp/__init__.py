@@ -44,6 +44,18 @@ def log(self, *args):
     # Do nothing. For backward compatability
     pass
 
+def startlog(self, *args):
+    # Do nothing. For backward compatability
+    pass
+
+def stoplog(self):
+    # Do nothing. For backward compatability
+    pass
+
+def logFailures(self, *args):
+    # Do nothing. For backward compatability
+    pass
+
 def _populateNamespace(d):
     for method in client._client.system.listMethods():
         if method.startswith('system.'):
