@@ -30,10 +30,13 @@ class Utils:
     cached_apps = None
     def __init__(self):
         lazy_load = True
+        self._states = {}
         self._appmap = {}
         self._callback = {}
+        self._state_names = {}
         self._window_uptime = {}
         self._callback_event = []
+        self._get_all_state_names()
         self._desktop = pyatspi.Registry.getDesktop(0)
         if Utils.cached_apps is None:
             pyatspi.Registry.registerEventListener(
@@ -43,6 +46,18 @@ class Utils:
                 for app in self._desktop:
                     if app is None: continue
                     self.cached_apps.append(app)
+
+    def _get_all_state_names(self):
+        """
+        This is used by client internally to populate all states
+        Create a dictionary
+        """
+        for state in pyatspi.STATE_VALUE_TO_NAME.keys():
+            self._states[state.__repr__()] = state
+            # Ignore STATE_ string for LDTPv1 compatibility
+            self._state_names[state] = \
+                state.__repr__().lower().partition("state_")[2]
+        return self._states
 
     def _on_window_event(self, event):
         if event.host_application not in self.cached_apps:
