@@ -53,9 +53,6 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
     '''
     def __init__(self):
         Utils.__init__(self)
-        self._states = {}
-        self._state_names = {}
-        self._get_all_state_names()
         # Window up time and onwindowcreate events
         self._events = ["window:create", "window:destroy"]
         # User registered events
@@ -132,18 +129,6 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
 
     def isalive(self):
         return True
-
-    def _get_all_state_names(self):
-        """
-        This is used by client internally to populate all states
-        Create a dictionary
-        """
-        for state in pyatspi.STATE_VALUE_TO_NAME.keys():
-            self._states[state.__repr__()] = state
-            # Ignore STATE_ string for LDTPv1 compatibility
-            self._state_names[state] = \
-                state.__repr__().lower().partition("state_")[2]
-        return self._states
 
     def launchapp(self, cmd, args=[], delay = 5, env = 1):
         '''
@@ -422,7 +407,8 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
 
         return int(waiter.run())
 
-    def waittillguiexist(self, window_name, object_name='', guiTimeOut=30):
+    def waittillguiexist(self, window_name, object_name = '',
+                         guiTimeOut = 30, state = ''):
         '''
         Wait till a window or component exists.
         
@@ -434,18 +420,20 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @type object_name: string
         @param guiTimeOut: Wait timeout in seconds
         @type guiTimeOut: integer
+        @param state: Object state used only when object_name is provided.
+        @type object_name: string
 
         @return: 1 if GUI was found, 0 if not.
         @rtype: integer
         '''
         if object_name:
-            waiter = ObjectExistsWaiter(window_name, object_name, guiTimeOut)
+            waiter = ObjectExistsWaiter(window_name, object_name, guiTimeOut, state)
         else:
             waiter = GuiExistsWaiter(window_name, guiTimeOut)
 
         return int(waiter.run())
 
-    def waittillguinotexist(self, window_name, object_name='', guiTimeOut=30):
+    def waittillguinotexist(self, window_name, object_name = '', guiTimeOut = 30):
         '''
         Wait till a window does not exist.
         
@@ -515,7 +503,7 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
             _obj_states.append(self._state_names[state.real])
         return _obj_states
 
-    def hasstate(self, window_name, object_name, state):
+    def hasstate(self, window_name, object_name, state, guiTimeOut = 0):
         '''
         has state
         
@@ -525,25 +513,20 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @param object_name: Object name to look for, either full name,
         LDTP's name convention, or a Unix glob. 
         @type object_name: string
+        @param guiTimeOut: Wait timeout in seconds
+        @type guiTimeOut: integer
 
         @return: 1 on success.
         @rtype: integer
         '''
         try:
-            if re.search(';', object_name):
-                obj = self._get_menu_hierarchy(window_name, object_name)
-            else:
-                obj = self._get_object(window_name, object_name)
-
-            _state_inst = obj.getState()
-            _obj_state = _state_inst.getStates()
-            state = 'STATE_%s' % state.upper()
-            if state in self._states and \
-                    self._states[state] in _obj_state:
-                return 1
+            waiter = \
+                ObjectExistsWaiter(window_name, object_name, guiTimeOut, state)
+            return int(waiter.run())
         except:
             pass
         return 0
+
     def grabfocus(self, window_name, object_name):
         '''
         Grab focus.
