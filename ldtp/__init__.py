@@ -157,7 +157,7 @@ def imagecapture(window_name = None, out_file = None, x = 0, y = 0,
 
     return out_file
 
-rgs):
+def onwindowcreate(window_name, fn_name, *args):
     '''
     On window create, call the function with given arguments
 
