@@ -27,14 +27,11 @@ import gobject
 import pyatspi
 import traceback
 
-_main_loop = gobject.MainLoop()
-
 class Waiter(Utils):
     events = []
     def __init__(self, timeout):
         Utils.__init__(self)
         self.timeout = timeout
-        gobject.threads_init()
 
     def run(self):
         self.success = False
@@ -52,7 +49,7 @@ class Waiter(Utils):
         if self.events:
             pyatspi.Registry.registerEventListener(
                 self._event_cb, *self.events)
-        _main_loop.run()
+        gtk.main()
         if self.events:
             pyatspi.Registry.deregisterEventListener(
                 self._event_cb, *self.events)
@@ -64,7 +61,7 @@ class Waiter(Utils):
         self._timeout_count += 1
         self.poll()
         if self._timeout_count >= self.timeout or self.success:
-            _main_loop.quit()
+            gtk.main_quit()
             return False
         return True
 
@@ -74,7 +71,7 @@ class Waiter(Utils):
     def _event_cb(self, event):
         self.event_cb(event)
         if self.success:
-            _main_loop.quit()
+            gtk.main_quit()
 
     def event_cb(self, event):
         pass
