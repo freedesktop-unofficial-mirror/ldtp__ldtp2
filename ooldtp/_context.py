@@ -17,7 +17,13 @@ See "COPYING" in the source distribution for more information.
 Headers in this file shall remain intact.
 '''
 
+import os
 import ldtp
+
+if os.environ.has_key('LDTP_DEBUG'):
+    _ldtp_debug = os.environ['LDTP_DEBUG']
+else:
+    _ldtp_debug = None
 
 class _Wrapper(object):
     def __new__(cls, *args, **kwargs):
@@ -26,7 +32,7 @@ class _Wrapper(object):
             d = ldtp.__dict__
             cls._wrapped_methods =[]
             for attr in d:
-                if cls._isRemoteMethod(d[attr]) and cls._isRelevant(d[attr]):
+                if cls._isRemoteMethod(d[attr]):# and cls._isRelevant(d[attr]):
                     setted = attr
                     if hasattr(cls, attr):
                         setted = "_remote_"+setted
@@ -69,6 +75,18 @@ class Context(_Wrapper):
         return args and 'window_name' == args[0]
     _isRelevant = classmethod(_isRelevant)
 
+    def getchild(self, child_name='', role=''):
+        # TODO: Bad API choice. Inconsistent, should return object or list,
+        # not both. UPDATE: Only returns first match.
+        matches = self._remote_getchild(child_name, role)
+        if matches:
+            if role:
+                return [Component(self._window_name, matches[0])]
+            else:
+                return Component(self._window_name, matches[0])
+        else:
+            return None
+    
 class _ContextFuncWrapper:
     def __init__(self, window_name, func):
         self._window_name = window_name
@@ -90,7 +108,7 @@ class Component(_Wrapper):
     def getchild(self, child_name='', role=''):
         # TODO: Bad API choice. Inconsistent, should return object or list,
         # not both. UPDATE: Only returns first match.
-        matches = self._remote_getchild(child_name, role, True)
+        matches = self._remote_getchild(child_name, role, self._object_name)
         if matches: 
             if role:
                 return [Component(self._window_name, matches[0])]
@@ -120,8 +138,12 @@ class _ComponentFuncWrapper:
         self._func = func
 
     def __call__(self, *args, **kwargs):
-        return self._func(
-            self._window_name, self._object_name, *args, **kwargs)
+        if self._func._Method__name == 'getchild':
+            return self._func(
+                self._window_name, *args, **kwargs)
+        else:
+            return self._func(
+                self._window_name, self._object_name, *args, **kwargs)
 
 if __name__ == "__main__":
     c = Component('Calculator', 'btnNumeric1')
