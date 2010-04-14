@@ -792,7 +792,7 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         raise LdtpServerException('Unknown property "%s" in %s' % \
                                       (prop, object_name))
 
-    def getchild(self, window_name, child_name = '', role = '', first = False):
+    def getchild(self, window_name, child_name = '', role = '', parent = ''):
         '''
         Gets the list of object available in the window, which matches 
         component name or role name or both.
@@ -804,11 +804,36 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @type child_name: string
         @param role: role name to search for, or an empty string for wildcard.
         @type role: string
+        @param parent: parent name to search for, or an empty string for wildcard.
+        @type role: string
 
         @return: list of matched children names
         @rtype: list
         '''
         matches = []
+        if parent and child_name and not role:
+            _window_handle = self._get_window_handle(window_name)
+            if not _window_handle:
+                raise LdtpServerException('Unable to find window "%s"' % \
+                                              window_name)
+            appmap = self._appmap_pairs(_window_handle)
+            obj = self._get_object_in_window(appmap, parent)
+            obj_name = appmap[obj['key']]
+            def _get_all_children_under_obj(obj, child_list):
+                if self._match_name_to_appmap(child_name, obj):
+                    child_list.append(obj['key'])
+                if obj:
+                    children = obj['children']
+                if not children:
+                    return child_list
+                for child in children:
+                    return _get_all_children_under_obj( \
+                        appmap[child],
+                        child_list)
+
+            matches = _get_all_children_under_obj(obj, [])
+            return matches
+
         _window_handle = self._get_window_handle(window_name)
         if not _window_handle:
             raise LdtpServerException('Unable to find window "%s"' % \
@@ -821,22 +846,14 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
             # When only role arg is passed
             if role and not child_name and obj['class'] == role:
                 matches.append(name)
+            # When parent and child_name arg is passed
+            if parent and child_name and not role and \
+                    self._match_name_to_appmap(parent, obj):
+                matches.append(name)
             # When only child_name arg is passed
             if child_name and not role and \
                     self._match_name_to_appmap(child_name, obj):
-                def _get_all_children_under_obj(obj, child_list):
-                    if obj:
-                        children = obj['children']
-                    if not children:
-                        return child_list
-                    child_list += children
-                    for child in children:
-                        return _get_all_children_under_obj( \
-                            appmap[child],
-                            child_list)
-
-                matches = _get_all_children_under_obj(obj, [])
-                break
+                matches.append(name)
             if role and child_name and obj['class'] == role and \
                     self._match_name_to_appmap(child_name, obj):
                 matches.append(name)
