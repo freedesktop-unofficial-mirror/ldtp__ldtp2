@@ -811,7 +811,9 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
         @rtype: list
         '''
         matches = []
-        if parent and child_name and not role:
+        if role:
+            role = re.sub(' ', '_', role)
+        if parent and (child_name or role):
             _window_handle = self._get_window_handle(window_name)
             if not _window_handle:
                 raise LdtpServerException('Unable to find window "%s"' % \
@@ -820,7 +822,9 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
             obj = self._get_object_in_window(appmap, parent)
             obj_name = appmap[obj['key']]
             def _get_all_children_under_obj(obj, child_list):
-                if self._match_name_to_appmap(child_name, obj):
+                if role and obj['class'] == role:
+                    child_list.append(obj['key'])
+                elif child_name and self._match_name_to_appmap(child_name, obj):
                     child_list.append(obj['key'])
                 if obj:
                     children = obj['children']
@@ -839,8 +843,6 @@ class Ldtpd(Utils, ComboBox, Table, Menu, PageTabList,
             raise LdtpServerException('Unable to find window "%s"' % \
                                           window_name)
         appmap = self._appmap_pairs(_window_handle)
-        if role:
-            role = re.sub(' ', '_', role)
         for name in appmap.keys():
             obj = appmap[name]
             # When only role arg is passed
