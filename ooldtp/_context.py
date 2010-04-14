@@ -81,7 +81,11 @@ class Context(_Wrapper):
         matches = self._remote_getchild(child_name, role)
         if matches:
             if role:
-                return [Component(self._window_name, matches[0])]
+                component_list = []
+                for matched_obj in matches:
+                    component_list.append(Component(self._window_name,
+                                                    matched_obj))
+                return component_list
             else:
                 return Component(self._window_name, matches[0])
         else:
@@ -111,7 +115,11 @@ class Component(_Wrapper):
         matches = self._remote_getchild(child_name, role, self._object_name)
         if matches: 
             if role:
-                return [Component(self._window_name, matches[0])]
+                component_list = []
+                for matched_obj in matches:
+                    component_list.append(Component(self._window_name,
+                                                    matched_obj))
+                return component_list
             else:
                 return Component(self._window_name, matches[0])
         else:
