@@ -19,6 +19,7 @@ See "COPYING" in the source distribution for more information.
 Headers in this file shall remain intact.
 '''
 
+import os
 import re
 import pyatspi
 from re import match as re_match
@@ -47,6 +48,10 @@ class Utils:
                 for app in self._desktop:
                     if app is None: continue
                     self.cached_apps.append(app)
+        if os.environ.has_key('LDTP_DEBUG'):
+            self._ldtp_debug = os.environ['LDTP_DEBUG']
+        else:
+            self._ldtp_debug = None
 
     def _get_all_state_names(self):
         """
@@ -89,8 +94,18 @@ class Utils:
                         relationType == pyatspi.RELATION_CONTROLLED_BY:
                     label_acc = rel.getTarget(i)
                     break
-        return abbreviated_roles.get(acc.getRole(), 'ukn'), \
-            (label_acc or acc).name.replace(' ', '').rstrip(':.')
+        role = acc.getRole()
+        if role == pyatspi.ROLE_FRAME or role == pyatspi.ROLE_DIALOG or \
+                role == pyatspi.ROLE_WINDOW or \
+                role == pyatspi.ROLE_FONT_CHOOSER or \
+                role == pyatspi.ROLE_FILE_CHOOSER or \
+                role == pyatspi.ROLE_ALERT or \
+                role == pyatspi.ROLE_COLOR_CHOOSER:
+            strip = '( |\n)'
+        else:
+            strip = '( |:|\.|_|\n)'
+        return abbreviated_roles.get(role, 'ukn'), \
+            re.sub(strip, '', (label_acc or acc).name)
 
     def _glob_match(self, pattern, string):
         return bool(re_match(glob_trans(pattern), string, re.M | re.U | re.L))
@@ -98,16 +113,29 @@ class Utils:
     def _match_name_to_acc(self, name, acc):
         if acc.name == name:
             return 1
-        _object_name = self._ldtpize_accessible(acc)
-        _object_name = u'%s%s' % (_object_name[0], _object_name[1])
+        _ldtpize_accessible_name = self._ldtpize_accessible(acc)
+        _object_name = u'%s%s' % (_ldtpize_accessible_name[0],
+                                  _ldtpize_accessible_name[1])
         if _object_name == name:
             return 1
         if self._glob_match(name, acc.name):
             return 1
         if self._glob_match(name, _object_name):
             return 1
-        if self._glob_match(re.sub(' ', '', name),
-                            re.sub(' ', '', _object_name)):
+        role = acc.getRole()
+        if role == pyatspi.ROLE_FRAME or role == pyatspi.ROLE_DIALOG or \
+                role == pyatspi.ROLE_WINDOW or \
+                role == pyatspi.ROLE_FONT_CHOOSER or \
+                role == pyatspi.ROLE_FILE_CHOOSER or \
+                role == pyatspi.ROLE_ALERT or \
+                role == pyatspi.ROLE_COLOR_CHOOSER:
+            strip = '( |\n)'
+        else:
+            strip = '( |:|\.|_|\n)'
+        _tmp_name = re.sub(strip, '', name)
+        if self._glob_match(_tmp_name, _object_name):
+            return 1
+        if self._glob_match(_tmp_name, _ldtpize_accessible_name[1]):
             return 1
         return 0
 
@@ -122,14 +150,25 @@ class Utils:
             return 1
         # Strip space and look for object
         obj_name = u'%s' % re.sub(' ', '', name)
-        if acc['label_by'] and \
-                self._glob_match(obj_name,
-                                 re.sub(' ', '', acc['label_by'])):
-            return 1
-        if acc['label'] and \
-                self._glob_match(obj_name,
-                                 re.sub(' ', '', acc['label'])):
-            return 1
+        role = acc['class']
+        if role == 'frame' or role == 'dialog' or \
+                role == 'window' or \
+                role == 'font_chooser' or \
+                role == 'file_chooser' or \
+                role == 'alert' or \
+                role == 'color_chooser':
+            strip = '( |\n)'
+        else:
+            strip = '( |:|\.|_|\n)'
+        obj_name = re.sub(strip, '', name)
+        if acc['label_by']:
+            _tmp_name = re.sub(strip, '', acc['label_by'])
+            if self._glob_match(obj_name, _tmp_name):
+                return 1
+        if acc['label']:
+            _tmp_name = re.sub(strip, '', acc['label'])
+            if self._glob_match(obj_name, _tmp_name):
+                return 1
         if self._glob_match(obj_name, acc['key']):
             return 1
         return 0
@@ -333,6 +372,8 @@ class Utils:
         def _traverse_parent(gui, window_name, obj, parent_list):
             if obj and window_name:
                 parent = obj['parent']
+                if parent not in appmap:
+                    return parent_list
                 parent_list.append(parent)
                 if self._match_name_to_acc(parent, gui):
                     return parent_list
